@@ -2,6 +2,16 @@ import { Injectable } from '@angular/core';
 
 import { AuthService } from '@mm-services/auth.service';
 
+const DEFAULT_TAB_WEIGHTS: Record<string, number> = {
+  messages: 1,
+  tasks: 2,
+  reports: 3,
+  contacts: 4,
+  analytics: 5,
+};
+
+const DEFAULT_EXTENSION_WEIGHT = 6;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -20,6 +30,7 @@ export class HeaderTabsService {
       typeName: 'message',
       icon: undefined,
       resourceIcon: undefined,
+      weight: DEFAULT_TAB_WEIGHTS['messages'],
     },
     {
       name: 'tasks',
@@ -30,6 +41,7 @@ export class HeaderTabsService {
       typeName: 'task',
       icon: undefined,
       resourceIcon: undefined,
+      weight: DEFAULT_TAB_WEIGHTS['tasks'],
     },
     {
       name: 'reports',
@@ -40,6 +52,7 @@ export class HeaderTabsService {
       typeName: 'report',
       icon: undefined,
       resourceIcon: undefined,
+      weight: DEFAULT_TAB_WEIGHTS['reports'],
     },
     {
       name: 'contacts',
@@ -49,6 +62,7 @@ export class HeaderTabsService {
       permissions: ['can_view_contacts', 'can_view_contacts_tab'],
       icon: undefined,
       resourceIcon: undefined,
+      weight: DEFAULT_TAB_WEIGHTS['contacts'],
     },
     {
       name: 'analytics',
@@ -58,63 +72,74 @@ export class HeaderTabsService {
       permissions: ['can_view_analytics', 'can_view_analytics_tab'],
       icon: undefined,
       resourceIcon: undefined,
+      weight: DEFAULT_TAB_WEIGHTS['analytics'],
     }
   ];
 
-  /**
-   * Returns the list of header tabs.
-   * If settings are passed as parameter, then it will add the tab.icon and tab.resourceIcon when available.
-   *
-   * @param settings {Object} Settings of CHT-Core instance.
-   *
-   * @returns HeaderTab[]
-   */
-  get(settings?): HeaderTab[] {
-    if (!settings?.header_tabs) {
-      return this.tabs;
-    }
+  private sortTabsByWeight(tabs: HeaderTab[]): HeaderTab[] {
+    return [...tabs].sort((a, b) => {
+      const wa = a.weight ?? DEFAULT_EXTENSION_WEIGHT;
+      const wb = b.weight ?? DEFAULT_EXTENSION_WEIGHT;
+      if (wa !== wb) {
+        return wa - wb;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }
 
+  get(settings?: Record<string, any>): HeaderTab[] {
     this.tabs.forEach(tab => {
-      if (!settings.header_tabs[tab.name]) {
-        return;
-      }
-
-      if (settings.header_tabs[tab.name].icon && settings.header_tabs[tab.name].icon.startsWith('fa-')) {
-        tab.icon = settings.header_tabs[tab.name].icon;
-      }
-
-      if (settings.header_tabs[tab.name].resource_icon) {
-        tab.resourceIcon = settings.header_tabs[tab.name].resource_icon;
-      }
+      tab.weight = DEFAULT_TAB_WEIGHTS[tab.name];
+      tab.icon = undefined;
+      tab.resourceIcon = undefined;
     });
 
-    return this.tabs;
+    if (settings?.header_tabs) {
+      this.tabs.forEach(tab => {
+        const tabConfig = settings['header_tabs'][tab.name];
+        if (!tabConfig) {
+          return;
+        }
+        if (tabConfig.icon && tabConfig.icon.startsWith('fa-')) {
+          tab.icon = tabConfig.icon;
+        }
+        if (tabConfig.resource_icon) {
+          tab.resourceIcon = tabConfig.resource_icon;
+        }
+        if (typeof tabConfig.weight === 'number') {
+          tab.weight = tabConfig.weight;
+        }
+      });
+    }
+
+    const extensionTabs: HeaderTab[] = this.getExtensionTabs(settings);
+    const allTabs = [...this.tabs, ...extensionTabs];
+    return this.sortTabsByWeight(allTabs);
   }
 
-  /**
-   * Returns the list of authorized header tabs according to the current user's permissions.
-   * If settings are passed as parameter, then it will add the tab.icon and tab.resourceIcon when available.
-   *
-   * @param settings {Object} Settings of CHT-Core instance.
-   *
-   * @returns Promise<HeaderTab[]>
-   */
-  async getAuthorizedTabs(settings?): Promise<HeaderTab[]> {
+  private getExtensionTabs(settings?: Record<string, any>): HeaderTab[] {
+    const appMainTabs: any[] = settings?.['app_main_tab'] ?? [];
+    return appMainTabs.map(ext => ({
+      name: ext.name ?? ext.id ?? '',
+      route: ext.route ?? ext.name ?? ext.id ?? '',
+      defaultIcon: ext.icon ?? 'fa-plus',
+      translation: ext.title ?? ext.name ?? ext.id ?? '',
+      permissions: ext.permissions ?? [],
+      icon: ext.icon?.startsWith('fa-') ? ext.icon : undefined,
+      resourceIcon: ext.resource_icon ?? undefined,
+      weight: typeof ext.weight === 'number' ? ext.weight : DEFAULT_EXTENSION_WEIGHT,
+    }));
+  }
+
+  async getAuthorizedTabs(settings?: Record<string, any>): Promise<HeaderTab[]> {
     const tabs = this.get(settings);
-    const tabAuthorization = await Promise.all(tabs.map(tab => this.authService.has(tab.permissions)));
-
-    return tabs.filter((tab, index) => tabAuthorization[index]);
+    const tabAuthorization = await Promise.all(
+      tabs.map(tab => this.authService.has(tab.permissions))
+    );
+    return tabs.filter((_, index) => tabAuthorization[index]);
   }
 
-  /**
-   * Returns the primary tab according to the current user's permissions.
-   * If settings are passed as parameter, then it will add the tab.icon and tab.resourceIcon when available.
-   *
-   * @param settings {Object} Settings of CHT-Core instance.
-   *
-   * @returns Promise<HeaderTab>
-   */
-  async getPrimaryTab(settings?): Promise<HeaderTab> {
+  async getPrimaryTab(settings?: Record<string, any>): Promise<HeaderTab | undefined> {
     const tabs = await this.getAuthorizedTabs(settings);
 
     return tabs?.[0];
@@ -130,4 +155,5 @@ export interface HeaderTab {
   typeName?: string;
   icon?: string;
   resourceIcon?: string;
+  weight?: number;
 }

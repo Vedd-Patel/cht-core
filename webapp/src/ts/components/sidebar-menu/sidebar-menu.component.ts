@@ -16,6 +16,7 @@ import { LocationService } from '@mm-services/location.service';
 import { DBSyncService } from '@mm-services/db-sync.service';
 import { ModalService } from '@mm-services/modal.service';
 import { StorageInfoService } from '@mm-services/storage-info.service';
+import { SettingsService } from '@mm-services/settings.service';
 
 import { filter } from 'rxjs/operators';
 import { Selectors } from '@mm-selectors/index';
@@ -42,7 +43,7 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
   @Input() canLogOut: boolean = false;
   @ViewChild('sidebar') sidebar!: MatSidenav;
   private globalActions: GlobalActions;
-  replicationStatus;
+  replicationStatus: any;
   moduleOptions: MenuOption[] = [];
   secondaryOptions: MenuOption[] = [];
   adminAppPath: string = '';
@@ -54,6 +55,7 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
     protected modalService: ModalService,
     private router: Router,
     protected readonly storageInfoService: StorageInfoService,
+    private settingsService: SettingsService,
   ) {
     super(store, dbSyncService, modalService, storageInfoService);
     this.globalActions = new GlobalActions(store);
@@ -93,48 +95,89 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
   private additionalSubscriptions() {
     const subscribeSidebarMenu = this.store
       .select(Selectors.getSidebarMenu)
-      .subscribe(sidebarMenu => this.sidebar?.toggle(sidebarMenu?.isOpen));
+      .subscribe((sidebarMenu: any) => this.sidebar?.toggle(sidebarMenu?.isOpen));
     this.subscriptions.add(subscribeSidebarMenu);
 
     const subscribePrivacyPolicy = this.store
       .select(Selectors.getShowPrivacyPolicy)
-      .subscribe(showPrivacyPolicy => this.setSecondaryOptions(showPrivacyPolicy));
+      .subscribe((showPrivacyPolicy: boolean) => this.setSecondaryOptions(showPrivacyPolicy));
     this.subscriptions.add(subscribePrivacyPolicy);
   }
 
-  private setModuleOptions() {
-    this.moduleOptions = [
+  private sortByWeight(options: MenuOption[]): MenuOption[] {
+    return [...options].sort((a, b) => {
+      const wa = a.weight ?? 6;
+      const wb = b.weight ?? 6;
+      if (wa !== wb) {
+        return wa - wb;
+      }
+      return a.translationKey.localeCompare(b.translationKey);
+    });
+  }
+
+  private async setModuleOptions() {
+    let settings: Record<string, any> = {};
+    try {
+      settings = await this.settingsService.get();
+    } catch (e) {
+      console.error('Failed to load settings for sidebar menu ordering', e);
+    }
+
+    const headerTabsConfig: Record<string, any> = settings?.['header_tabs'] ?? {};
+
+    const getWeight = (name: string, defaultWeight: number): number => {
+      const configWeight = headerTabsConfig[name]?.weight;
+      return typeof configWeight === 'number' ? configWeight : defaultWeight;
+    };
+
+    const builtInOptions: MenuOption[] = [
       {
         routerLink: 'messages',
         icon: 'fa-envelope',
         translationKey: 'Messages',
-        hasPermissions: 'can_view_messages,!can_view_messages_tab'
+        hasPermissions: 'can_view_messages,!can_view_messages_tab',
+        weight: getWeight('messages', 1),
       },
       {
         routerLink: 'tasks',
         icon: 'fa-flag',
         translationKey: 'Tasks',
-        hasPermissions: 'can_view_tasks,!can_view_tasks_tab'
+        hasPermissions: 'can_view_tasks,!can_view_tasks_tab',
+        weight: getWeight('tasks', 2),
       },
       {
         routerLink: 'reports',
         icon: 'fa-list-alt',
         translationKey: 'Reports',
-        hasPermissions: 'can_view_reports,!can_view_reports_tab'
+        hasPermissions: 'can_view_reports,!can_view_reports_tab',
+        weight: getWeight('reports', 3),
       },
       {
         routerLink: 'contacts',
         icon: 'fa-user',
         translationKey: 'Contacts',
-        hasPermissions: 'can_view_contacts,!can_view_contacts_tab'
+        hasPermissions: 'can_view_contacts,!can_view_contacts_tab',
+        weight: getWeight('contacts', 4),
       },
       {
         routerLink: 'analytics',
         icon: 'fa-bar-chart-o',
         translationKey: 'Analytics',
         hasPermissions: 'can_view_analytics,!can_view_analytics_tab',
+        weight: getWeight('analytics', 5),
       },
     ];
+
+    const extensionOptions: MenuOption[] = (settings?.['app_main_tab'] ?? []).map((ext: any) => ({
+      routerLink: ext.route ?? ext.name ?? ext.id,
+      icon: ext.icon?.startsWith('fa-') ? ext.icon : 'fa-plus',
+      translationKey: ext.title ?? ext.name ?? ext.id ?? '',
+      hasPermissions: ext.permissions ? ext.permissions.join(',') : undefined,
+      canDisplay: !ext.permissions,
+      weight: typeof ext.weight === 'number' ? ext.weight : 6,
+    }));
+
+    this.moduleOptions = this.sortByWeight([...builtInOptions, ...extensionOptions]);
   }
 
   private setSecondaryOptions(showPrivacyPolicy = false) {
@@ -155,7 +198,7 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
         routerLink: 'user',
         icon: 'fa-user',
         translationKey: 'edit.user.settings',
-        hasPermissions: 'can_edit_profile'
+        hasPermissions: 'can_edit_profile',
       },
       {
         routerLink: 'privacy-policy',
@@ -167,7 +210,7 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
         icon: 'fa-bug',
         translationKey: 'Report Bug',
         canDisplay: true,
-        click: () => this.openFeedback()
+        click: () => this.openFeedback(),
       },
     ];
   }
@@ -180,4 +223,5 @@ interface MenuOption {
   hasPermissions?: string;
   canDisplay?: boolean;
   click?: () => void;
+  weight?: number;
 }
