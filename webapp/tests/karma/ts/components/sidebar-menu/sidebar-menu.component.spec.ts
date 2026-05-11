@@ -18,6 +18,8 @@ import { AuthService } from '@mm-services/auth.service';
 import { GlobalActions } from '@mm-actions/global';
 import { LogoutConfirmComponent } from '@mm-modals/logout/logout-confirm.component';
 import { FeedbackComponent } from '@mm-modals/feedback/feedback.component';
+import { SettingsService } from '@mm-services/settings.service';
+import { HeaderTabsService } from '@mm-services/header-tabs.service';
 
 describe('SidebarMenuComponent', () => {
   let component: SidebarMenuComponent;
@@ -26,12 +28,17 @@ describe('SidebarMenuComponent', () => {
   let dbSyncService;
   let modalService;
   let authService;
+  let settingsService;
+  let headerTabsService;
 
   beforeEach(async () => {
     locationService = { adminPath: '/admin/' };
     dbSyncService = { sync: sinon.stub() };
     modalService = { show: sinon.stub() };
     authService = { has: sinon.stub(), online: sinon.stub() };
+
+    settingsService = { get: sinon.stub().resolves({}) };
+    headerTabsService = { get: sinon.stub().returns([]) };
 
     await TestBed
       .configureTestingModule({
@@ -51,12 +58,16 @@ describe('SidebarMenuComponent', () => {
           { provide: DBSyncService, useValue: dbSyncService },
           { provide: ModalService, useValue: modalService },
           { provide: AuthService, useValue: authService },
+          { provide: SettingsService, useValue: settingsService },
+          { provide: HeaderTabsService, useValue: headerTabsService }
         ],
       })
       .compileComponents();
     fixture = TestBed.createComponent(SidebarMenuComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+
+    await fixture.whenStable();
   });
 
   afterEach(() => sinon.restore());
@@ -77,31 +88,36 @@ describe('SidebarMenuComponent', () => {
         routerLink: 'messages',
         icon: 'fa-envelope',
         translationKey: 'Messages',
-        hasPermissions: 'can_view_messages,!can_view_messages_tab'
+        hasPermissions: 'can_view_messages,!can_view_messages_tab',
+        weight: 1
       },
       {
         routerLink: 'tasks',
         icon: 'fa-flag',
         translationKey: 'Tasks',
-        hasPermissions: 'can_view_tasks,!can_view_tasks_tab'
+        hasPermissions: 'can_view_tasks,!can_view_tasks_tab',
+        weight: 2
       },
       {
         routerLink: 'reports',
         icon: 'fa-list-alt',
         translationKey: 'Reports',
-        hasPermissions: 'can_view_reports,!can_view_reports_tab'
+        hasPermissions: 'can_view_reports,!can_view_reports_tab',
+        weight: 3
       },
       {
         routerLink: 'contacts',
         icon: 'fa-user',
         translationKey: 'Contacts',
-        hasPermissions: 'can_view_contacts,!can_view_contacts_tab'
+        hasPermissions: 'can_view_contacts,!can_view_contacts_tab',
+        weight: 4
       },
       {
         routerLink: 'analytics',
         icon: 'fa-bar-chart-o',
         translationKey: 'Analytics',
         hasPermissions: 'can_view_analytics,!can_view_analytics_tab',
+        weight: 5
       },
     ]);
 
@@ -147,7 +163,7 @@ describe('SidebarMenuComponent', () => {
   });
 
   it('should not replicate if sync is disabled', () => {
-    component.replicationStatus = { current: { disableSyncButton: true } };
+    (component as any).replicationStatus = { current: { disableSyncButton: true } };
 
     component.replicate();
 
@@ -155,7 +171,7 @@ describe('SidebarMenuComponent', () => {
   });
 
   it('should replicate if sync is enabled', () => {
-    component.replicationStatus = { current: { disableSyncButton: false } };
+    (component as any).replicationStatus = { current: { disableSyncButton: false } };
 
     component.replicate();
 

@@ -12,6 +12,34 @@ const DEFAULT_TAB_WEIGHTS: Record<string, number> = {
 
 const DEFAULT_EXTENSION_WEIGHT = 6;
 
+export interface ExtensionTab {
+  id?: string;
+  name?: string;
+  route?: string;
+  icon?: string;
+  title?: string;
+  permissions?: string[];
+  resource_icon?: string;
+  weight?: number;
+}
+
+export interface ChtSettings {
+  header_tabs?: Record<string, { weight?: number; icon?: string; resource_icon?: string; }>;
+  app_main_tab?: ExtensionTab[];
+}
+
+export interface HeaderTab {
+  name: string;
+  route: string;
+  defaultIcon: string;
+  translation: string;
+  permissions: string[];
+  typeName?: string;
+  icon?: string;
+  resourceIcon?: string;
+  weight?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -87,16 +115,20 @@ export class HeaderTabsService {
     });
   }
 
-  get(settings?: Record<string, any>): HeaderTab[] {
+  get(settings?: ChtSettings): HeaderTab[] {
     this.tabs.forEach(tab => {
       tab.weight = DEFAULT_TAB_WEIGHTS[tab.name];
       tab.icon = undefined;
       tab.resourceIcon = undefined;
     });
 
+    if (!settings?.header_tabs && !settings?.app_main_tab) {
+      return this.sortTabsByWeight(this.tabs);
+    }
+
     if (settings?.header_tabs) {
       this.tabs.forEach(tab => {
-        const tabConfig = settings['header_tabs'][tab.name];
+        const tabConfig = settings.header_tabs?.[tab.name];
         if (!tabConfig) {
           return;
         }
@@ -117,8 +149,8 @@ export class HeaderTabsService {
     return this.sortTabsByWeight(allTabs);
   }
 
-  private getExtensionTabs(settings?: Record<string, any>): HeaderTab[] {
-    const appMainTabs: any[] = settings?.['app_main_tab'] ?? [];
+  private getExtensionTabs(settings?: ChtSettings): HeaderTab[] {
+    const appMainTabs = settings?.app_main_tab ?? [];
     return appMainTabs.map(ext => ({
       name: ext.name ?? ext.id ?? '',
       route: ext.route ?? ext.name ?? ext.id ?? '',
@@ -131,7 +163,7 @@ export class HeaderTabsService {
     }));
   }
 
-  async getAuthorizedTabs(settings?: Record<string, any>): Promise<HeaderTab[]> {
+  async getAuthorizedTabs(settings?: ChtSettings): Promise<HeaderTab[]> {
     const tabs = this.get(settings);
     const tabAuthorization = await Promise.all(
       tabs.map(tab => this.authService.has(tab.permissions))
@@ -139,21 +171,9 @@ export class HeaderTabsService {
     return tabs.filter((_, index) => tabAuthorization[index]);
   }
 
-  async getPrimaryTab(settings?: Record<string, any>): Promise<HeaderTab | undefined> {
+  async getPrimaryTab(settings?: ChtSettings): Promise<HeaderTab | undefined> {
     const tabs = await this.getAuthorizedTabs(settings);
 
     return tabs?.[0];
   }
-}
-
-export interface HeaderTab {
-  name: string;
-  route: string;
-  defaultIcon: string;
-  translation: string;
-  permissions: string[];
-  typeName?: string;
-  icon?: string;
-  resourceIcon?: string;
-  weight?: number;
 }

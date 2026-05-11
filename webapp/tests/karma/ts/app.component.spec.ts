@@ -53,6 +53,8 @@ import { ReloadingComponent } from '@mm-modals/reloading/reloading.component';
 import { StorageInfoService } from '@mm-services/storage-info.service';
 import { TasksNotificationService } from '@mm-services/task-notifications.service';
 import { PREFIXES } from '@medic/constants';
+import { SettingsService } from '@mm-services/settings.service';
+import { HeaderTabsService } from '@mm-services/header-tabs.service';
 
 describe('AppComponent', () => {
   let component: AppComponent;
@@ -96,12 +98,14 @@ describe('AppComponent', () => {
   let updateServiceWorkerService;
   let storageInfoService;
   let tasksNotificationService;
+  let settingsService;
+  let headerTabsService;
   // End Services
 
   let globalActions;
   let analyticsActions;
   let originalPouchDB;
-  const changesListener:any = {};
+  const changesListener: any = {};
   let consoleErrorStub;
   let originalMedicMobileAndroid;
 
@@ -132,6 +136,8 @@ describe('AppComponent', () => {
     setLanguageService = { set: sinon.stub() };
     translateService = { instant: sinon.stub().returnsArg(0) };
     tasksNotificationService = { initOnAndroid: sinon.stub() };
+    settingsService = { get: sinon.stub().resolves({}) };
+    headerTabsService = { getAuthorizedTabs: sinon.stub().resolves([]) };
     modalService = {
       show: sinon.stub().returns({
         afterClosed: sinon.stub().returns(of())
@@ -166,7 +172,7 @@ describe('AppComponent', () => {
     };
     translateLocaleService = { reloadLang: sinon.stub() };
     transitionsService = { init: sinon.stub() };
-    
+
     storageInfoService = { init: sinon.stub(), stop: sinon.stub() };
 
     router = { navigate: sinon.stub(), events: of(ActivationEnd) };
@@ -252,6 +258,8 @@ describe('AppComponent', () => {
           { provide: StorageInfoService, useValue: storageInfoService },
           { provide: Router, useValue: router },
           { provide: TasksNotificationService, useValue: tasksNotificationService },
+          { provide: SettingsService, useValue: settingsService },
+          { provide: HeaderTabsService, useValue: headerTabsService },
         ]
       })
       .overrideComponent(SidebarMenuComponent, {
@@ -528,7 +536,7 @@ describe('AppComponent', () => {
         lastTrigger: undefined,
         lastSuccessTo: 12345
       }]);
-      expect(globalActions.updateReplicationStatus.getCall(1).args).to.deep.equal([{disabled: true}]);
+      expect(globalActions.updateReplicationStatus.getCall(1).args).to.deep.equal([{ disabled: true }]);
       expect(dbSyncService.subscribe.callCount).to.equal(1);
     });
 
@@ -632,7 +640,7 @@ describe('AppComponent', () => {
 
       await getComponent();
 
-      expect(changesListener['user-context'].filter({ doc: { type: 'user-settings', name: 'a' }}))
+      expect(changesListener['user-context'].filter({ doc: { type: 'user-settings', name: 'a' } }))
         .to.equal(false);
     });
 
@@ -674,7 +682,7 @@ describe('AppComponent', () => {
       expect(filter({ id: 'messages-en' })).to.equal(true);
       expect(filter({ id: 'messages-tl' })).to.equal(true);
       expect(filter({ id: 'not-messages-tl' })).to.equal(false);
-      expect(filter({ })).to.equal(undefined);
+      expect(filter({})).to.equal(undefined);
       expect(filter({ id: 'undefined' })).to.equal(false);
     });
 
@@ -712,7 +720,7 @@ describe('AppComponent', () => {
       analyticsModulesService.get.resolves([{
         id: 'targets',
         label: 'analytics.targets',
-        route: [ '/', 'analytics', 'targets' ]
+        route: ['/', 'analytics', 'targets']
       }]);
 
       await getComponent();
@@ -726,7 +734,7 @@ describe('AppComponent', () => {
         [{
           id: 'targets',
           label: 'analytics.targets',
-          route: [ '/', 'analytics', 'targets' ]
+          route: ['/', 'analytics', 'targets']
         }]
       ]);
     }));
@@ -748,7 +756,7 @@ describe('AppComponent', () => {
     }));
 
     it('should redirect to the error page when there is an exception', fakeAsync(async () => {
-      chtDatasourceService.isInitialized.throws({ error: 'some error'});
+      chtDatasourceService.isInitialized.throws({ error: 'some error' });
 
       await getComponent();
       flush();
@@ -760,7 +768,7 @@ describe('AppComponent', () => {
         { error: 'some error' }
       ]);
       expect(router.navigate.callCount).to.equal(1);
-      expect(router.navigate.args[0]).to.deep.equal([[ '/error', '503' ]]);
+      expect(router.navigate.args[0]).to.deep.equal([['/error', '503']]);
     }));
   });
 });

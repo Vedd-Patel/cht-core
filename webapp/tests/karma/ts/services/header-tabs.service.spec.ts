@@ -8,7 +8,7 @@ import { HeaderTabsService } from '@mm-services/header-tabs.service';
 import { AuthService } from '@mm-services/auth.service';
 
 describe('HeaderTabs service', () => {
-  let service:HeaderTabsService;
+  let service: HeaderTabsService;
   let authService;
 
   beforeEach(() => {
@@ -30,15 +30,15 @@ describe('HeaderTabs service', () => {
       const tabs = service.get();
       // @ts-ignore
       expect(tabs).to.shallowDeepEqual([
-        { name: 'messages', defaultIcon: 'fa-envelope', icon: undefined },
-        { name: 'tasks', defaultIcon: 'fa-flag', icon: undefined },
-        { name: 'reports', defaultIcon: 'fa-list-alt', icon: undefined },
-        { name: 'contacts', defaultIcon: 'fa-user', icon: undefined },
-        { name: 'analytics', defaultIcon: 'fa-bar-chart-o', icon: undefined },
+        { name: 'messages', defaultIcon: 'fa-envelope', icon: undefined, weight: 1 },
+        { name: 'tasks', defaultIcon: 'fa-flag', icon: undefined, weight: 2 },
+        { name: 'reports', defaultIcon: 'fa-list-alt', icon: undefined, weight: 3 },
+        { name: 'contacts', defaultIcon: 'fa-user', icon: undefined, weight: 4 },
+        { name: 'analytics', defaultIcon: 'fa-bar-chart-o', icon: undefined, weight: 5 },
       ]);
 
       expect(service.get({})).to.deep.equal(tabs);
-      expect(service.get({ key: 'value' })).to.deep.equal(tabs);
+      expect(service.get({ key: 'value' } as any as any)).to.deep.equal(tabs);
       expect(service.get({ header_tabs: {} })).to.deep.equal(tabs);
     });
 
@@ -53,11 +53,11 @@ describe('HeaderTabs service', () => {
       const tabs = service.get({ header_tabs: headerTabsSettings });
       // @ts-ignore
       expect(tabs).to.shallowDeepEqual([
-        { name: 'messages', icon: undefined, resourceIcon: undefined, defaultIcon: 'fa-envelope' },
-        { name: 'tasks', icon: 'fa-whatever', resourceIcon: undefined, defaultIcon: 'fa-flag' },
-        { name: 'reports', icon: undefined, resourceIcon: 'some-icon', defaultIcon: 'fa-list-alt' },
-        { name: 'contacts', icon: undefined, resourceIcon: 'one-icon', defaultIcon: 'fa-user' },
-        { name: 'analytics', icon: 'fa-icon', resourceIcon: 'other-icon', defaultIcon: 'fa-bar-chart-o' },
+        { name: 'messages', icon: undefined, resourceIcon: undefined, defaultIcon: 'fa-envelope', weight: 1 },
+        { name: 'tasks', icon: 'fa-whatever', resourceIcon: undefined, defaultIcon: 'fa-flag', weight: 2 },
+        { name: 'reports', icon: undefined, resourceIcon: 'some-icon', defaultIcon: 'fa-list-alt', weight: 3 },
+        { name: 'contacts', icon: undefined, resourceIcon: 'one-icon', defaultIcon: 'fa-user', weight: 4 },
+        { name: 'analytics', icon: 'fa-icon', resourceIcon: 'other-icon', defaultIcon: 'fa-bar-chart-o', weight: 5 },
       ]);
     });
 
@@ -106,6 +106,7 @@ describe('HeaderTabs service', () => {
           typeName: 'message',
           icon: undefined,
           resourceIcon: undefined,
+          weight: 1
         },
         {
           name: 'reports',
@@ -116,6 +117,7 @@ describe('HeaderTabs service', () => {
           typeName: 'report',
           icon: undefined,
           resourceIcon: undefined,
+          weight: 3
         },
         {
           name: 'analytics',
@@ -125,6 +127,7 @@ describe('HeaderTabs service', () => {
           permissions: ['can_view_analytics', 'can_view_analytics_tab'],
           icon: undefined,
           resourceIcon: undefined,
+          weight: 5
         }
       ]);
     });
@@ -156,6 +159,7 @@ describe('HeaderTabs service', () => {
           typeName: 'task',
           icon: undefined,
           resourceIcon: undefined,
+          weight: 2
         },
         {
           name: 'contacts',
@@ -165,6 +169,7 @@ describe('HeaderTabs service', () => {
           permissions: ['can_view_contacts', 'can_view_contacts_tab'],
           icon: undefined,
           resourceIcon: undefined,
+          weight: 4
         },
         {
           name: 'analytics',
@@ -174,6 +179,7 @@ describe('HeaderTabs service', () => {
           permissions: ['can_view_analytics', 'can_view_analytics_tab'],
           icon: undefined,
           resourceIcon: undefined,
+          weight: 5
         }
       ]);
     });
@@ -204,6 +210,7 @@ describe('HeaderTabs service', () => {
           typeName: 'message',
           icon: undefined,
           resourceIcon: 'pomegranate-icon',
+          weight: 1
         },
         {
           name: 'tasks',
@@ -214,6 +221,7 @@ describe('HeaderTabs service', () => {
           typeName: 'task',
           icon: 'fa-apple',
           resourceIcon: undefined,
+          weight: 2
         },
         {
           name: 'contacts',
@@ -223,6 +231,7 @@ describe('HeaderTabs service', () => {
           permissions: ['can_view_contacts', 'can_view_contacts_tab'],
           icon: undefined,
           resourceIcon: 'pear-icon',
+          weight: 4
         },
         {
           name: 'analytics',
@@ -232,6 +241,7 @@ describe('HeaderTabs service', () => {
           permissions: ['can_view_analytics', 'can_view_analytics_tab'],
           icon: 'fa-mango-icon',
           resourceIcon: 'mango-icon',
+          weight: 5
         }
       ]);
     });
@@ -256,6 +266,7 @@ describe('HeaderTabs service', () => {
         typeName: 'message',
         icon: undefined,
         resourceIcon: undefined,
+        weight: 1
       });
     });
 
@@ -277,6 +288,7 @@ describe('HeaderTabs service', () => {
         typeName: 'report',
         icon: undefined,
         resourceIcon: undefined,
+        weight: 3
       });
     });
 
@@ -305,6 +317,7 @@ describe('HeaderTabs service', () => {
         permissions: ['can_view_contacts', 'can_view_contacts_tab'],
         icon: undefined,
         resourceIcon: undefined,
+        weight: 4
       });
     });
 
@@ -332,6 +345,7 @@ describe('HeaderTabs service', () => {
         permissions: ['can_view_analytics', 'can_view_analytics_tab'],
         icon: 'fa-mango-icon',
         resourceIcon: 'mango-icon',
+        weight: 5
       });
     });
   });

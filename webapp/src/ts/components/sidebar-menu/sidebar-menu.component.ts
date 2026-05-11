@@ -21,6 +21,31 @@ import { SettingsService } from '@mm-services/settings.service';
 import { filter } from 'rxjs/operators';
 import { Selectors } from '@mm-selectors/index';
 
+export interface ExtensionOption {
+  id?: string;
+  name?: string;
+  route?: string;
+  icon?: string;
+  title?: string;
+  permissions?: string[];
+  weight?: number;
+}
+
+export interface ChtSettings {
+  header_tabs?: Record<string, { weight?: number; icon?: string; resource_icon?: string; }>;
+  app_main_tab?: ExtensionOption[];
+}
+
+export interface MenuOption {
+  icon: string;
+  translationKey: string;
+  routerLink?: string;
+  hasPermissions?: string;
+  canDisplay?: boolean;
+  click?: () => void;
+  weight?: number;
+}
+
 @Component({
   selector: 'mm-sidebar-menu',
   templateUrl: './sidebar-menu.component.html',
@@ -43,7 +68,7 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
   @Input() canLogOut: boolean = false;
   @ViewChild('sidebar') sidebar!: MatSidenav;
   private globalActions: GlobalActions;
-  replicationStatus: any;
+
   moduleOptions: MenuOption[] = [];
   secondaryOptions: MenuOption[] = [];
   adminAppPath: string = '';
@@ -79,7 +104,7 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
   }
 
   replicate(): void {
-    if (this.replicationStatus?.current?.disableSyncButton) {
+    if ((this as any).replicationStatus?.current?.disableSyncButton) {
       return;
     }
     super.replicate();
@@ -116,14 +141,14 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
   }
 
   private async setModuleOptions() {
-    let settings: Record<string, any> = {};
+    let settings: ChtSettings = {};
     try {
-      settings = await this.settingsService.get();
+      settings = (await this.settingsService.get()) as ChtSettings;
     } catch (e) {
       console.error('Failed to load settings for sidebar menu ordering', e);
     }
 
-    const headerTabsConfig: Record<string, any> = settings?.['header_tabs'] ?? {};
+    const headerTabsConfig = settings?.header_tabs ?? {};
 
     const getWeight = (name: string, defaultWeight: number): number => {
       const configWeight = headerTabsConfig[name]?.weight;
@@ -168,7 +193,7 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
       },
     ];
 
-    const extensionOptions: MenuOption[] = (settings?.['app_main_tab'] ?? []).map((ext: any) => ({
+    const extensionOptions: MenuOption[] = (settings?.app_main_tab ?? []).map((ext) => ({
       routerLink: ext.route ?? ext.name ?? ext.id,
       icon: ext.icon?.startsWith('fa-') ? ext.icon : 'fa-plus',
       translationKey: ext.title ?? ext.name ?? ext.id ?? '',
@@ -214,14 +239,4 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
       },
     ];
   }
-}
-
-interface MenuOption {
-  icon: string;
-  translationKey: string;
-  routerLink?: string;
-  hasPermissions?: string;
-  canDisplay?: boolean;
-  click?: () => void;
-  weight?: number;
 }
