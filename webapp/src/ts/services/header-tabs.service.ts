@@ -115,6 +115,14 @@ export class HeaderTabsService {
     });
   }
 
+  /**
+   * Returns the list of header tabs.
+   * If settings are passed as parameter, then it will add the tab.icon and tab.resourceIcon when available.
+   *
+   * @param settings {Object} Settings of CHT-Core instance.
+   *
+   * @returns HeaderTab[]
+   */
   get(settings?: ChtSettings): HeaderTab[] {
     this.tabs.forEach(tab => {
       tab.weight = DEFAULT_TAB_WEIGHTS[tab.name];
@@ -163,6 +171,14 @@ export class HeaderTabsService {
     }));
   }
 
+  /**
+   * Returns the list of authorized header tabs according to the current user's permissions.
+   * If settings are passed as parameter, then it will add the tab.icon and tab.resourceIcon when available.
+   *
+   * @param settings {Object} Settings of CHT-Core instance.
+   *
+   * @returns Promise<HeaderTab[]>
+   */
   async getAuthorizedTabs(settings?: ChtSettings): Promise<HeaderTab[]> {
     const tabs = this.get(settings);
     const tabAuthorization = await Promise.all(
@@ -171,6 +187,14 @@ export class HeaderTabsService {
     return tabs.filter((_, index) => tabAuthorization[index]);
   }
 
+  /**
+   * Returns the primary tab according to the current user's permissions.
+   * If settings are passed as parameter, then it will add the tab.icon and tab.resourceIcon when available.
+   *
+   * @param settings {Object} Settings of CHT-Core instance.
+   *
+   * @returns Promise<HeaderTab>
+   */
   async getPrimaryTab(settings?: ChtSettings): Promise<HeaderTab | undefined> {
     const tabs = await this.getAuthorizedTabs(settings);
 
