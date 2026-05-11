@@ -140,7 +140,7 @@ export class HeaderTabsService {
         if (!tabConfig) {
           return;
         }
-        if (tabConfig.icon && tabConfig.icon.startsWith('fa-')) {
+        if (tabConfig.icon?.startsWith('fa-')) {
           tab.icon = tabConfig.icon;
         }
         if (tabConfig.resource_icon) {

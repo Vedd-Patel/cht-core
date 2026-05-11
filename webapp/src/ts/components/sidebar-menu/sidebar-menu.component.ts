@@ -80,7 +80,7 @@ export class SidebarMenuComponent extends BaseMenuComponent implements OnInit, O
     protected modalService: ModalService,
     private router: Router,
     protected readonly storageInfoService: StorageInfoService,
-    private settingsService: SettingsService,
+    private readonly settingsService: SettingsService,
   ) {
     super(store, dbSyncService, modalService, storageInfoService);
     this.globalActions = new GlobalActions(store);
